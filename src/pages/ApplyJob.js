@@ -19,11 +19,7 @@ const ApplyJob = () => {
   const [submitted, setSubmitted] = useState(false)
   const [error, setError] = useState(null)
 
-  useEffect(() => {
-    fetchJobDetails()
-  }, [jobId])
-
-  const fetchJobDetails = async () => {
+  const fetchJobDetails = React.useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -44,7 +40,11 @@ const ApplyJob = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [jobId])
+
+  useEffect(() => {
+    fetchJobDetails()
+  }, [fetchJobDetails])
 
   const handleInputChange = (e) => {
     const { name, value } = e.target

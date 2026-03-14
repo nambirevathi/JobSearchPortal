@@ -16,9 +16,21 @@ const JobsList = () => {
     fetchJobs()
   }, [])
 
+  const filterJobs = React.useCallback(() => {
+    const filtered = jobs.filter(job => {
+      const titleMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase())
+      const companyMatch = job.company_name.toLowerCase().includes(searchTerm.toLowerCase())
+      const locationMatch = locationFilter === '' || 
+        (job.candidate_required_location && job.candidate_required_location.toLowerCase().includes(locationFilter.toLowerCase()))
+      
+      return (titleMatch || companyMatch) && locationMatch
+    })
+    setFilteredJobs(filtered)
+  }, [jobs, searchTerm, locationFilter])
+
   useEffect(() => {
     filterJobs()
-  }, [jobs, searchTerm, locationFilter])
+  }, [filterJobs])
 
   const fetchJobs = async () => {
     setLoading(true)
@@ -36,18 +48,6 @@ const JobsList = () => {
     } finally {
       setLoading(false)
     }
-  }
-
-  const filterJobs = () => {
-    let filtered = jobs.filter(job => {
-      const titleMatch = job.title.toLowerCase().includes(searchTerm.toLowerCase())
-      const companyMatch = job.company_name.toLowerCase().includes(searchTerm.toLowerCase())
-      const locationMatch = locationFilter === '' || 
-        (job.candidate_required_location && job.candidate_required_location.toLowerCase().includes(locationFilter.toLowerCase()))
-      
-      return (titleMatch || companyMatch) && locationMatch
-    })
-    setFilteredJobs(filtered)
   }
 
   const handleJobClick = (jobId) => {

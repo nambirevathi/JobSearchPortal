@@ -10,11 +10,7 @@ const JobDetails = () => {
   const [error, setError] = useState(null)
   const { isJobSaved, toggleSaveJob, isJobApplied } = useContext(JobContext)
 
-  useEffect(() => {
-    fetchJobDetails()
-  }, [jobId])
-
-  const fetchJobDetails = async () => {
+  const fetchJobDetails = React.useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -35,7 +31,11 @@ const JobDetails = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [jobId])
+
+  useEffect(() => {
+    fetchJobDetails()
+  }, [fetchJobDetails])
 
   const handleApply = () => {
     navigate(`/apply/${jobId}`)
