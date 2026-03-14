@@ -1,0 +1,470 @@
+# 🎯 Job Board Application - Visual Architecture
+
+## Application Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                     CLIENT (React App)                          │
+│                                                                 │
+│  ┌────────────────────────────────────────────────────────┐    │
+│  │                  App.js (Router)                       │    │
+│  │                                                        │    │
+│  │  ┌──────────────────────────────────────────────┐    │    │
+│  │  │         Context Providers                    │    │    │
+│  │  │  ┌──────────────────┐                       │    │    │
+│  │  │  │  AuthContext     │  (JWT, Login/Logout) │    │    │
+│  │  │  └──────────────────┘                       │    │    │
+│  │  │  ┌──────────────────┐                       │    │    │
+│  │  │  │  JobContext      │  (Save, Apply)       │    │    │
+│  │  │  └──────────────────┘                       │    │    │
+│  │  └──────────────────────────────────────────────┘    │    │
+│  │                                                        │    │
+│  │  ┌──────────────────────────────────────────────┐    │    │
+│  │  │         Routes & Components                  │    │    │
+│  │  │                                              │    │    │
+│  │  │  [Header] (Navigation)                      │    │    │
+│  │  │      ├─ /login          → [Login]           │    │    │
+│  │  │      ├─ /               → [JobsList]        │    │    │
+│  │  │      ├─ /job/:jobId     → [JobDetails]      │    │    │
+│  │  │      ├─ /apply/:jobId   → [ApplyJob]    ⚠️  │    │    │
+│  │  │      └─ /saved-jobs     → [SavedJobs]   ⚠️  │    │    │
+│  │  │                                              │    │    │
+│  │  └──────────────────────────────────────────────┘    │    │
+│  │                                                        │    │
+│  └────────────────────────────────────────────────────────┘    │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+    ┌────────────┐      ┌────────────┐    ┌──────────┐
+    │  CCBP API  │      │ Remotive   │    │ Browser  │
+    │            │      │ Jobs API   │    │ Cookies  │
+    │  /login    │      │            │    │          │
+    │ (JWT)      │      │ /api/      │    │ (JWT)    │
+    └────────────┘      │ remote-jobs│    └──────────┘
+                        └────────────┘
+
+⚠️ = Protected Routes (requires JWT token)
+```
+
+---
+
+## Component Tree
+
+```
+App
+├── Header
+│   ├── Navigation Links
+│   └── Logout Button
+│
+├── Routes
+│   ├── /login
+│   │   └── Login (Form)
+│   │
+│   ├── /
+│   │   └── JobsList
+│   │       ├── Search Input
+│   │       ├── Filter Input
+│   │       └── Job Cards (List)
+│   │
+│   ├── /job/:jobId
+│   │   └── JobDetails
+│   │       ├── Job Header
+│   │       ├── Job Description
+│   │       └── Sidebar (Company Info)
+│   │
+│   ├── /apply/:jobId (Protected)
+│   │   └── ApplyJob
+│   │       └── Application Form
+│   │
+│   └── /saved-jobs (Protected)
+│       └── SavedJobs
+│           ├── Empty State (if no jobs)
+│           └── Saved Job Cards (List)
+│
+└── Context Providers
+    ├── AuthProvider
+    │   └── (Login/Logout State)
+    └── JobProvider
+        └── (Save/Apply State)
+```
+
+---
+
+## Data Flow Diagram
+
+```
+┌──────────────────┐
+│  User Opens App  │
+└────────┬─────────┘
+         │
+         ▼
+    ┌─────────────────┐
+    │ Check JWT Token │
+    │ in Cookies      │
+    └────┬────────────┘
+         │
+    ┌────┴──────┐
+    │           │
+    ▼           ▼
+┌────────┐  ┌──────────┐
+│ Exists │  │ Not Found│
+└───┬────┘  └────┬─────┘
+    │            │
+    │      ┌─────▼─────────┐
+    │      │ Show Login    │
+    │      │ Page          │
+    │      └─────┬─────────┘
+    │            │
+    │      ┌─────▼──────────┐
+    │      │ User Submits   │
+    │      │ Credentials    │
+    │      └─────┬──────────┘
+    │            │
+    │      ┌─────▼────────────────┐
+    │      │ POST /login API      │
+    │      │ CCBP: apis.ccbp.in   │
+    │      └─────┬────────────────┘
+    │            │
+    │      ┌─────▼──────┬────────────┐
+    │      │            │            │
+    │      ▼            ▼            ▼
+    │  ┌────────┐ ┌─────────┐  ┌─────────┐
+    │  │Success │ │  Error  │  │Timeout  │
+    │  └───┬────┘ └────┬────┘  └────┬────┘
+    │      │           │            │
+    │      │  ┌────────▼───┐   ┌────▼─────┐
+    │      │  │ Show Error │   │ Retry    │
+    │      │  │ Message    │   │ Option   │
+    │      │  └────────────┘   └──────────┘
+    │      │
+    │  ┌───▼──────────────┐
+    │  │ Store JWT Token  │
+    │  │ in Cookies       │
+    │  └───┬──────────────┘
+    │      │
+    └──────┼──────────┐
+           │          │
+           ▼          ▼
+    ┌────────────────────┐
+    │   JobsList Page    │
+    │                    │
+    │ ┌────────────────┐ │
+    │ │ Fetch Jobs     │ │
+    │ │ from Remotive  │ │
+    │ │ API            │ │
+    │ └────────────────┘ │
+    │ ┌────────────────┐ │
+    │ │ Display List   │ │
+    │ └────────────────┘ │
+    │ ┌────────────────┐ │
+    │ │ User Can:      │ │
+    │ │ - Search       │ │
+    │ │ - Filter       │ │
+    │ │ - View Details │ │
+    │ │ - Save Job     │ │
+    │ │ - Apply        │ │
+    │ └────────────────┘ │
+    └────────────────────┘
+```
+
+---
+
+## State Management Flow
+
+```
+AuthContext
+└── User Authentication
+    ├── State
+    │   ├── user (null or {token})
+    │   ├── loading (boolean)
+    │   ├── error (string or null)
+    │   └── isAuthenticated (boolean)
+    │
+    ├── Methods
+    │   ├── login(username, password)
+    │   │   ├── Call CCBP API
+    │   │   ├── Store JWT in cookies
+    │   │   └── Update user state
+    │   │
+    │   └── logout()
+    │       ├── Remove JWT from cookies
+    │       ├── Clear user state
+    │       └── Redirect to login
+    │
+    └── Usage
+        ├── Header (for logout button)
+        ├── ProtectedRoute (for access check)
+        ├── Login page (for authentication)
+        └── All pages (for isAuthenticated)
+
+
+JobContext
+└── Job Management
+    ├── State
+    │   ├── savedJobs (array)
+    │   ├── appliedJobs (array)
+    │
+    ├── Methods
+    │   ├── toggleSaveJob(job)
+    │   │   ├── Check if already saved
+    │   │   ├── Add or remove from array
+    │   │   └── Update state
+    │   │
+    │   ├── isJobSaved(jobId)
+    │   │   └── Return boolean
+    │   │
+    │   ├── applyForJob(job, appData)
+    │   │   ├── Store job + application
+    │   │   ├── Mark as applied
+    │   │   └── Add timestamp
+    │   │
+    │   └── isJobApplied(jobId)
+    │       └── Return boolean
+    │
+    └── Usage
+        ├── JobsList (for save button)
+        ├── JobDetails (for save button)
+        ├── ApplyJob (for submission)
+        ├── SavedJobs (for list display)
+        └── Job cards (for applied status)
+```
+
+---
+
+## Page Navigation Flow
+
+```
+START
+  │
+  ▼
+┌─────────────────────┐
+│   Check JWT Token   │
+└────┬────────────────┘
+     │
+     ├──→ [NO TOKEN] ─→ [Login Page (/login)]
+     │                     │
+     │                     └─→ Submit Credentials
+     │                          │
+     │                          ├─→ [Success] ─→ Store JWT ─┐
+     │                          │                           │
+     │                          └─→ [Error] ───→ Show Error │
+     │                                                      │
+     ├──→ [TOKEN EXISTS] ────────────────────────────────────┤
+     │                                                        │
+     └────────────────────────────────────────────────────────┘
+                           │
+                           ▼
+               ┌───────────────────────┐
+               │  JobsList (/)         │
+               │  [Public - No Auth]   │
+               └─────────┬─────────────┘
+                         │
+            ┌────────────┼────────────┐
+            │            │            │
+            ▼            ▼            ▼
+      ┌──────────┐  ┌──────────┐  ┌──────────┐
+      │ Search   │  │ Filter   │  │ Click    │
+      │ Jobs     │  │ by Loc   │  │ Job      │
+      └────┬─────┘  └────┬─────┘  └────┬─────┘
+           │             │             │
+           └─────────────┼─────────────┘
+                         │
+                         ▼
+               ┌───────────────────────┐
+               │ JobDetails (/job/:id) │
+               │ [Public - No Auth]    │
+               └─────┬────────┬────────┘
+                     │        │
+          ┌──────────┘        └──────────┐
+          │                              │
+          ▼                              ▼
+    ┌──────────────┐            ┌──────────────┐
+    │ Save Job     │            │ Apply Button │
+    │ (Icon)       │            │              │
+    └──────┬───────┘            └──────┬───────┘
+           │                           │
+           ▼                           ▼
+    ┌──────────────┐        ┌──────────────────────┐
+    │ SavedJobs    │        │ ApplyJob             │
+    │ (/saved-jobs)│        │ (/apply/:jobId)      │
+    │ [PROTECTED]  │        │ [PROTECTED ⚠️]       │
+    └──────────────┘        └──────┬───────────────┘
+                                   │
+                            ┌──────▼──────┐
+                            │ Fill Form   │
+                            │ - Name      │
+                            │ - Email     │
+                            │ - Phone     │
+                            │ - Exp Level │
+                            │ - Cover Ltr │
+                            └──────┬──────┘
+                                   │
+                            ┌──────▼──────┐
+                            │ Validate    │
+                            │ & Submit    │
+                            └──────┬──────┘
+                                   │
+                            ┌──────▼──────┐
+                            │ Success ✓   │
+                            │ Redirect    │
+                            └─────────────┘
+
+┌──────────────────┐
+│  [Logout Button] │ ──→ Remove JWT ──→ [Login Page (/login)]
+└──────────────────┘
+```
+
+---
+
+## API Integration Points
+
+```
+Frontend                    API                         Response
+┌──────────┐
+│ Login    │  POST /login              ┌──────────────┐
+│ Form     │─────────────────────────→ │ CCBP API     │
+│          │  {username, password}     │              │
+└──────────┘                           │ (JWT Token)  │
+                                       └──────────────┘
+                                              │
+                                              ▼
+                                    ┌──────────────────┐
+                                    │ Store in Cookies │
+                                    └──────────────────┘
+
+┌──────────┐
+│ JobsList │  GET /api/remote-jobs    ┌──────────────┐
+│ Page     │─────────────────────────→ │ Remotive API │
+│          │  (No Auth Required)       │              │
+└──────────┘                           │ [Job Array]  │
+                                       └──────────────┘
+                                              │
+                                              ▼
+                                    ┌──────────────────┐
+                                    │ Display Jobs     │
+                                    │ - Search         │
+                                    │ - Filter         │
+                                    │ - Save           │
+                                    │ - Apply          │
+                                    └──────────────────┘
+
+┌──────────┐
+│ Apply    │  No API (Local Storage)   ┌──────────────┐
+│ Form     │─────────────────────────→ │ JobContext   │
+│          │  Application Data         │ State        │
+└──────────┘                           │ (Browser)    │
+                                       └──────────────┘
+```
+
+---
+
+## File Dependencies
+
+```
+index.js
+    └── App.js
+        ├── AuthProvider
+        │   └── AuthContext.js
+        │
+        ├── JobProvider
+        │   └── JobContext.js
+        │
+        ├── Header.js
+        │   └── AuthContext (consumed)
+        │
+        └── Routes
+            ├── /login → Login.js
+            ├── / → JobsList.js
+            │       └── JobContext (consumed)
+            │       └── Remotive API
+            ├── /job/:id → JobDetails.js
+            │              └── JobContext (consumed)
+            │              └── Remotive API
+            ├── /apply/:id → ApplyJob.js (Protected)
+            │                └── ProtectedRoute.js
+            │                └── JobContext (consumed)
+            │                └── Remotive API
+            └── /saved-jobs → SavedJobs.js (Protected)
+                             └── ProtectedRoute.js
+                             └── JobContext (consumed)
+
+CSS Files
+    ├── index.css (Global)
+    ├── App.css
+    ├── Header.css
+    ├── Login.css
+    ├── JobsList.css
+    ├── JobDetails.css
+    ├── ApplyJob.css
+    └── SavedJobs.css
+```
+
+---
+
+## Protected Routes Mechanism
+
+```
+┌───────────────────────────┐
+│  User Accesses Route      │
+│  e.g., /apply/:jobId      │
+└────────────┬──────────────┘
+             │
+             ▼
+    ┌────────────────────┐
+    │ ProtectedRoute.js  │
+    │                    │
+    │ Check: JWT Token   │
+    │ exists in Cookies? │
+    └─────┬──────────┬──┐
+          │          │  │
+       YES│          │NO│
+          │          │  │
+          ▼          │  ▼
+    ┌──────────┐     │ ┌───────────────────┐
+    │ Return   │     │ │ <Navigate to      │
+    │ Children │     │ │  /login />        │
+    │ (Render  │     │ │                   │
+    │ Page)    │     │ │ Force Redirect    │
+    └──────────┘     │ │ to Login          │
+                     │ └───────────────────┘
+                     └───────────┬──────────┘
+                                 │
+                          ┌──────▼──────┐
+                          │ User Must   │
+                          │ Login First │
+                          └─────────────┘
+```
+
+---
+
+## Deployment Architecture (Future)
+
+```
+┌─────────────────────────────────────┐
+│   Development (localhost:3000)      │
+└──────────────┬──────────────────────┘
+               │
+               ▼
+        npm run build
+               │
+               ▼
+    ┌──────────────────────────┐
+    │  Production Build        │
+    │  (Optimized & Minified)  │
+    └──────────────┬───────────┘
+                   │
+      ┌────────────┼────────────┐
+      │            │            │
+      ▼            ▼            ▼
+   ┌──────┐   ┌──────┐   ┌──────────┐
+   │Vercel│   │Github│   │  AWS S3  │
+   │      │   │Pages │   │+ Frontend│
+   └──────┘   └──────┘   └──────────┘
+```
+
+---
+
+**Last Updated**: February 1, 2026

@@ -1,0 +1,86 @@
+
+
+🧑‍💼 Job Board Application (Intermediate Level)
+📌 Project Description
+Design and develop a Job Board platform where:
+Employers can view and post job listings (mocked / local data)
+Job seekers can browse jobs, view details, and apply
+The application uses public job APIs to fetch real job data and demonstrates API integration, routing, filtering, and protected authentication flows in React.
+
+🔐 Authentication (Login & Logout)
+Implement Login and Logout using the provided authentication API:
+https://apis.ccbp.in/login
+(JWT-based authentication – Learning Portal)
+On successful login:
+JWT token is stored in Cookies
+User is redirected to the Jobs Dashboard
+Only authenticated users can:
+Apply for jobs
+View saved/bookmarked jobs
+Unauthenticated users are redirected to the Login page
+On Logout:
+JWT token is removed
+User is redirected to Login page
+Protected pages become inaccessible
+🔒 Protected Pages
+Apply Job page
+Saved / Bookmarked Jobs page
+
+🌐 Public APIs for Job Data
+You can use any one of the following:
+🔹 1. Remotive
+Remote jobs
+Free & no API key required
+URL: https://remotive.com/api/remote-jobs
+Best for: Simple, clean job listings
+🔹 2. Adzuna
+Jobs by location, role, salary
+Requires free API key
+Best for: Advanced filtering
+🔹 3. The Muse
+Company profiles + jobs
+Free access
+Best for: Company-centric job boards
+
+🚀 Core Features
+👤 Job Seeker
+View job listings (from public API)
+Search jobs by title / location
+View job details page
+Apply for job (mock form – protected)
+Save / bookmark jobs (protected)
+
+🏢 Employer (Optional / Mocked)
+Post a new job (stored locally / MockAPI)
+View posted jobs
+
+🛠️ Tech Stack
+React.js
+React Router
+JWT Authentication
+Public Job API (Remotive / Adzuna / The Muse)
+CSS / Tailwind CSS
+
+🔄 Data Flow
+User opens application
+If not logged in → redirected to Login page
+Login success → JWT stored in cookies
+Job data fetched from public API
+Jobs list displayed
+User selects a job → view details
+Logged-in user can apply / save job
+Logout clears session
+
+🧪 Edge Cases to Handle
+No jobs available
+API failure
+Empty search results
+Unauthorized access to Apply page
+Invalid or expired JWT
+
+📈 Future Enhancements
+Real employer job posting
+Resume upload
+Admin dashboard
+Email notifications
+Pagination & infinite scroll

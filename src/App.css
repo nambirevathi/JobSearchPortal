@@ -1,0 +1,4 @@
+/* App styling with Tailwind CSS */
+.app {
+  @apply flex flex-col min-h-screen;
+}

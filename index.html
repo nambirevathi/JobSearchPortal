@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Board - Find Your Next Role</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }
+        
+        .spinner { 
+            border: 4px solid rgba(255,255,255,0.3); 
+            border-top: 4px solid #3b82f6; 
+            border-radius: 50%; 
+            width: 48px; 
+            height: 48px; 
+            animation: spin 1s linear infinite; 
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        .btn { 
+            padding: 12px 24px; 
+            border-radius: 10px; 
+            font-weight: 600; 
+            cursor: pointer; 
+            border: none; 
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 14px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+        
+        .btn-primary { 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white; 
+        }
+        .btn-primary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-secondary { 
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #374151; 
+        }
+        .btn-secondary:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+        
+        .btn-success { 
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            color: white; 
+        }
+        .btn-success:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(17, 153, 142, 0.4);
+        }
+        
+        .btn-danger { 
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white; 
+        }
+        .btn-danger:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(235, 51, 73, 0.4);
+        }
+
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .job-card {
+            position: relative;
+            overflow: hidden;
+        }
+
+        .job-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s;
+        }
+
+        .job-card:hover::before {
+            left: 100%;
+        }
+
+        .header-blur {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-field {
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .textarea-field {
+            padding: 14px 18px;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            background: white;
+            resize: vertical;
+        }
+
+        .textarea-field:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 50px;
+            font-size: 13px;
+            font-weight: 600;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .glow {
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .role-btn {
+            opacity: 0.6;
+            transition: all 0.3s ease;
+        }
+
+        .role-btn.active {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+
+    <script>
+        // ============= STATE & STORAGE =============
+        const API_URL = 'https://remotive.com/api/remote-jobs?limit=50';
+        const authToken = localStorage.getItem('authToken');
+        
+        let state = {
+            currentPage: authToken ? 'jobs' : 'login',
+            userRole: localStorage.getItem('userRole') || 'employee', // employee or employer
+            jobs: [],
+            savedJobs: JSON.parse(localStorage.getItem('savedJobs')) || [],
+            appliedJobs: JSON.parse(localStorage.getItem('appliedJobs')) || [],
+            postedJobs: JSON.parse(localStorage.getItem('postedJobs')) || [],
+            applications: JSON.parse(localStorage.getItem('applications')) || [],
+            currentJob: null,
+            searchQuery: '',
+            filterLocation: '',
+            loading: false,
+            message: ''
+        };
+
+        // ============= AUTH =============
+        function login(username, password, role = 'employee') {
+            if (username === 'rahul' && password === 'rahul@2021') {
+                const token = btoa(`${username}:${password}`);
+                localStorage.setItem('authToken', token);
+                localStorage.setItem('userRole', role);
+                state.userRole = role;
+                state.currentPage = role === 'employer' ? 'employer-dashboard' : 'jobs';
+                render();
+            } else {
+                state.message = 'Invalid credentials';
+                render();
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('userRole');
+            state.currentPage = 'login';
+            state.currentJob = null;
+            state.message = '';
+            state.userRole = 'employee';
+            render();
+        }
+
+        // ============= JOBS =============
+        async function fetchJobs() {
+            state.loading = true;
+            render();
+            try {
+                const response = await fetch(API_URL);
+                const data = await response.json();
+                state.jobs = data.jobs || [];
+                state.loading = false;
+            } catch (error) {
+                state.message = 'Failed to load jobs';
+                state.loading = false;
+            }
+            render();
+        }
+
+        function getFilteredJobs() {
+            return state.jobs.filter(job => {
+                const titleMatch = job.title.toLowerCase().includes(state.searchQuery.toLowerCase());
+                const companyMatch = (job.company_name || '').toLowerCase().includes(state.searchQuery.toLowerCase());
+                const locationMatch = state.filterLocation === '' || 
+                    (job.job_location || 'Remote').toLowerCase().includes(state.filterLocation.toLowerCase());
+                return (titleMatch || companyMatch) && locationMatch;
+            });
+        }
+
+        function saveJob(jobId) {
+            if (!state.savedJobs.includes(jobId)) {
+                state.savedJobs.push(jobId);
+                localStorage.setItem('savedJobs', JSON.stringify(state.savedJobs));
+            }
+        }
+
+        function unsaveJob(jobId) {
+            state.savedJobs = state.savedJobs.filter(id => id !== jobId);
+            localStorage.setItem('savedJobs', JSON.stringify(state.savedJobs));
+        }
+
+        function applyJob(jobId, formData) {
+            if (!state.appliedJobs.includes(jobId)) {
+                state.appliedJobs.push(jobId);
+                localStorage.setItem('appliedJobs', JSON.stringify(state.appliedJobs));
+            }
+            // Save application for employers to see
+            state.applications.push({
+                jobId: jobId,
+                name: formData.name,
+                email: formData.email,
+                message: formData.resume,
+                appliedDate: new Date().toLocaleDateString()
+            });
+            localStorage.setItem('applications', JSON.stringify(state.applications));
+            state.message = 'Application submitted successfully!';
+            setTimeout(() => {
+                state.currentPage = 'jobs';
+                state.message = '';
+                render();
+            }, 2000);
+        }
+
+        // ============= EMPLOYER FUNCTIONS =============
+        function postJob(jobData) {
+            const newJob = {
+                id: Date.now(),
+                ...jobData,
+                postedDate: new Date().toLocaleDateString(),
+                company_name: 'Your Company',
+                applications: []
+            };
+            state.postedJobs.push(newJob);
+            localStorage.setItem('postedJobs', JSON.stringify(state.postedJobs));
+            state.message = 'Job posted successfully!';
+            setTimeout(() => {
+                state.currentPage = 'employer-dashboard';
+                state.message = '';
+                render();
+            }, 1500);
+        }
+
+        function deletePostedJob(jobId) {
+            state.postedJobs = state.postedJobs.filter(j => j.id !== jobId);
+            localStorage.setItem('postedJobs', JSON.stringify(state.postedJobs));
+            render();
+        }
+
+        function getApplicationsForJob(jobId) {
+            return state.applications.filter(app => app.jobId === jobId);
+        }
+
+        // ============= COMPONENTS =============
+        function Header() {
+            const token = localStorage.getItem('authToken');
+            const isEmployer = state.userRole === 'employer';
+            return `
+                <header class="sticky top-0 z-50 header-blur border-b border-white/20">
+                    <div class="max-w-7xl mx-auto px-8 py-5 flex justify-between items-center">
+                        <div class="flex items-center gap-3 cursor-pointer hover:opacity-80 transition" onclick="state.currentPage = ${isEmployer ? "'employer-dashboard'" : "'jobs'"}; render()">
+                            <div class="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-500 rounded-xl flex items-center justify-center text-2xl shadow-lg">${isEmployer ? '🏢' : '💼'}</div>
+                            <div>
+                                <h1 class="text-2xl font-bold gradient-text">JobBoard</h1>
+                                <p class="text-xs text-gray-500">${isEmployer ? 'Employer Dashboard' : 'Find Remote Jobs'}</p>
+                            </div>
+                        </div>
+                        ${token ? `
+                            <nav class="flex gap-6 items-center">
+                                ${isEmployer ? `
+                                    <button onclick="state.currentPage = 'employer-dashboard'; render()" class="px-6 py-2 text-gray-700 hover:text-purple-600 font-semibold transition text-sm">📊 Dashboard</button>
+                                    <button onclick="state.currentPage = 'post-job'; render()" class="px-6 py-2 text-gray-700 hover:text-purple-600 font-semibold transition text-sm">➕ Post Job</button>
+                                ` : `
+                                    <button onclick="state.currentPage = 'jobs'; render()" class="px-6 py-2 text-gray-700 hover:text-purple-600 font-semibold transition text-sm">📋 Browse</button>
+                                    <button onclick="state.currentPage = 'saved'; render()" class="px-6 py-2 text-gray-700 hover:text-purple-600 font-semibold transition text-sm relative">
+                                        ❤️ Saved
+                                        ${state.savedJobs.length > 0 ? `<span class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-6 h-6 flex items-center justify-center">${state.savedJobs.length}</span>` : ''}
+                                    </button>
+                                `}
+                                <div class="border-l border-gray-300 pl-6">
+                                    <button onclick="logout()" class="btn btn-danger">Logout</button>
+                                </div>
+                            </nav>
+                        ` : ''}
+                    </div>
+                </header>
+            `;
+        }
+
+        function LoginPage() {
+            return `
+                <div class="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+                    <!-- Animated background elements -->
+                    <div class="absolute inset-0 overflow-hidden">
+                        <div class="absolute w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+                        <div class="absolute w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+                        <div class="absolute w-96 h-96 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+                    </div>
+
+                    <div class="relative z-10 w-full max-w-md">
+                        <div class="card mb-8">
+                            <div class="text-center mb-10">
+                                <div class="w-20 h-20 bg-gradient-to-br from-purple-600 to-pink-500 rounded-2xl flex items-center justify-center text-5xl mx-auto mb-6 shadow-lg">💼</div>
+                                <h2 class="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent mb-3">JobBoard</h2>
+                                <p class="text-gray-600 text-lg">Find your next opportunity</p>
+                            </div>
+
+                            <!-- Role Selection -->
+                            <div class="flex gap-4 mb-8">
+                                <button onclick="document.getElementById('loginForm').dataset.role = 'employee'; document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active')); this.classList.add('active')" class="role-btn active flex-1 btn btn-primary">👤 Employee</button>
+                                <button onclick="document.getElementById('loginForm').dataset.role = 'employer'; document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active')); this.classList.add('active')" class="role-btn flex-1 btn btn-secondary">🏢 Employer</button>
+                            </div>
+
+                            ${state.message ? `<div class="bg-red-50 text-red-700 p-4 rounded-12 mb-6 border border-red-200 flex items-center gap-2"><i class="fas fa-exclamation-circle"></i> ${state.message}</div>` : ''}
+
+                            <form id="loginForm" data-role="employee" onsubmit="event.preventDefault(); const role = document.getElementById('loginForm').dataset.role; login(document.getElementById('username').value, document.getElementById('password').value, role)">
+                                <div class="mb-6">
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Username</label>
+                                    <input type="text" id="username" placeholder="rahul" class="input-field w-full">
+                                </div>
+
+                                <div class="mb-8">
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Password</label>
+                                    <input type="password" id="password" placeholder="rahul@2021" class="input-field w-full">
+                                </div>
+
+                                <button type="submit" class="btn btn-primary w-full mb-4">Sign In</button>
+                            </form>
+                        </div>
+
+                        <div class="card bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200">
+                            <p class="text-sm font-semibold text-gray-700 mb-3">🔑 Demo Credentials</p>
+                            <div class="space-y-2">
+                                <p class="text-sm text-gray-600"><strong>Username:</strong> <code class="bg-white px-3 py-1 rounded font-mono text-purple-600">rahul</code></p>
+                                <p class="text-sm text-gray-600"><strong>Password:</strong> <code class="bg-white px-3 py-1 rounded font-mono text-purple-600">rahul@2021</code></p>
+                            </div>
+                            <p class="text-sm text-gray-600 mt-4 pt-4 border-t border-purple-200">Works for both <strong>Employee</strong> and <strong>Employer</strong> roles!</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function JobsList() {
+            const filteredJobs = getFilteredJobs();
+            
+            // Get unique locations from jobs
+            const locations = ['All Locations', ...new Set(state.jobs.map(j => j.job_location || 'Remote'))].filter(Boolean);
+            
+            return `
+                <div class="max-w-7xl mx-auto px-8 py-12">
+                    <div class="mb-12">
+                        <h2 class="text-5xl font-bold mb-3 gradient-text">Discover Jobs</h2>
+                        <p class="text-gray-600 text-lg">Explore thousands of remote opportunities</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
+                        <div class="md:col-span-2">
+                            <input type="text" placeholder="🔍 Search by job title or company..." 
+                                value="${state.searchQuery}"
+                                onchange="state.searchQuery = this.value; render()"
+                                class="input-field w-full text-lg">
+                        </div>
+                        <select onchange="state.filterLocation = this.value; render()" class="input-field text-lg">
+                            <option value="">📍 All Locations</option>
+                            ${locations.filter(l => l !== 'All Locations').map(loc => `<option value="${loc}">${loc}</option>`).join('')}
+                        </select>
+                    </div>
+
+                    ${state.loading ? `
+                        <div class="flex justify-center py-20">
+                            <div class="text-center">
+                                <div class="spinner mx-auto mb-6"></div>
+                                <p class="text-gray-600 text-lg">Loading amazing jobs...</p>
+                            </div>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            ${filteredJobs.map(job => `
+                                <div class="card job-card group">
+                                    <div class="mb-4 flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h3 class="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition line-clamp-2">${job.title}</h3>
+                                            <p class="text-purple-600 font-semibold mt-2">${job.company_name}</p>
+                                        </div>
+                                        <button onclick="${state.savedJobs.includes(job.id) ? `unsaveJob(${job.id})` : `saveJob(${job.id})`}; render()" class="text-3xl hover:scale-125 transition">${state.savedJobs.includes(job.id) ? '❤️' : '🤍'}</button>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-gray-600 mb-4">
+                                        <span>📍</span>
+                                        <p>${job.job_location || 'Remote'}</p>
+                                    </div>
+                                    <p class="text-gray-600 text-sm mb-6 line-clamp-2">${job.job_description ? job.job_description.substring(0, 100) + '...' : 'No description'}</p>
+                                    <button onclick="state.currentPage = 'details'; state.currentJob = ${job.id}; render()" class="btn btn-primary w-full">View Details →</button>
+                                </div>
+                            `).join('')}
+                        </div>
+
+                        ${filteredJobs.length === 0 ? `
+                            <div class="text-center py-20">
+                                <p class="text-4xl mb-4">🔍</p>
+                                <p class="text-2xl text-gray-600 font-semibold mb-2">No jobs found</p>
+                                <p class="text-gray-500 mb-6">Try adjusting your search criteria</p>
+                                <button onclick="state.searchQuery = ''; state.filterLocation = ''; render()" class="btn btn-secondary">Reset Filters</button>
+                            </div>
+                        ` : ''}
+                    `}
+                </div>
+            `;
+        }
+
+        function JobDetails() {
+            const job = state.jobs.find(j => j.id === state.currentJob);
+            if (!job) return '';
+
+            const isSaved = state.savedJobs.includes(job.id);
+            const isApplied = state.appliedJobs.includes(job.id);
+
+            return `
+                <div class="max-w-7xl mx-auto px-8 py-12">
+                    <button onclick="state.currentPage = 'jobs'; render()" class="flex items-center gap-2 text-purple-600 font-semibold hover:text-purple-700 mb-8 transition">
+                        ← Back to Jobs
+                    </button>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-2">
+                            <div class="card mb-8">
+                                <div class="mb-6">
+                                    <div class="mb-4">
+                                        <span class="badge">${job.job_type || 'Full-time'}</span>
+                                    </div>
+                                    <h1 class="text-5xl font-bold text-gray-900 mb-3">${job.title}</h1>
+                                    <p class="text-2xl text-purple-600 font-semibold">${job.company_name}</p>
+                                </div>
+                                <div class="flex flex-wrap gap-6 text-gray-600 mb-8 pb-8 border-b border-gray-200">
+                                    <div><span class="text-2xl">📍</span> ${job.job_location || 'Remote'}</div>
+                                    <div><span class="text-2xl">🌐</span> Remote Job</div>
+                                    <div><span class="text-2xl">⏰</span> Posted Recently</div>
+                                </div>
+                                ${job.job_description ? `
+                                    <div class="prose max-w-none">
+                                        <h3 class="text-2xl font-bold text-gray-900 mb-4">About This Role</h3>
+                                        <p class="text-gray-700 leading-relaxed text-lg">${job.job_description}</p>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+
+                        <div class="lg:col-span-1">
+                            <div class="sticky top-24 space-y-4">
+                                <div class="card">
+                                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Job Type</p>
+                                    <p class="text-2xl font-bold text-gray-900">${job.job_type || 'Full-time'}</p>
+                                </div>
+
+                                <div class="card">
+                                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Location</p>
+                                    <p class="text-2xl font-bold text-gray-900">📍 ${job.job_location || 'Remote'}</p>
+                                </div>
+
+                                <div class="card">
+                                    <p class="text-gray-600 text-sm font-semibold uppercase tracking-wide mb-2">Company</p>
+                                    <p class="text-xl font-bold text-gray-900">${job.company_name}</p>
+                                </div>
+
+                                ${!isApplied ? `
+                                    <button onclick="state.currentPage = 'apply'; render()" class="btn btn-success w-full">Apply Now</button>
+                                ` : `
+                                    <div class="card bg-green-50 border border-green-200">
+                                        <p class="text-green-700 font-semibold flex items-center gap-2">✓ Already Applied</p>
+                                    </div>
+                                `}
+                                
+                                <button onclick="${isSaved ? `unsaveJob(${job.id})` : `saveJob(${job.id})`}; render()" class="btn ${isSaved ? 'btn-danger' : 'btn-secondary'} w-full">
+                                    ${isSaved ? '❤️ Remove from Saved' : '🤍 Save Job'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function ApplyJob() {
+            const job = state.jobs.find(j => j.id === state.currentJob);
+            if (!job) return '';
+
+            return `
+                <div class="max-w-2xl mx-auto px-8 py-12">
+                    <button onclick="state.currentPage = 'details'; render()" class="flex items-center gap-2 text-purple-600 font-semibold hover:text-purple-700 mb-8 transition">
+                        ← Back
+                    </button>
+
+                    <div class="card">
+                        <div class="mb-8">
+                            <h2 class="text-4xl font-bold text-gray-900 mb-2">Apply for</h2>
+                            <p class="text-2xl font-bold gradient-text">${job.title}</p>
+                            <p class="text-gray-600 text-lg mt-2">at <span class="font-semibold text-gray-900">${job.company_name}</span></p>
+                        </div>
+
+                        ${state.message ? `<div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200 flex items-center gap-2"><i class="fas fa-check-circle"></i> <span>${state.message}</span></div>` : ''}
+
+                        <form onsubmit="event.preventDefault(); applyJob(${job.id}, {name: document.getElementById('name').value, email: document.getElementById('email').value, resume: document.getElementById('resume').value})">
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Full Name</label>
+                                    <input type="text" id="name" required placeholder="John Doe" class="input-field w-full text-lg">
+                                </div>
+
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Email Address</label>
+                                    <input type="email" id="email" required placeholder="john@example.com" class="input-field w-full text-lg">
+                                </div>
+
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Cover Letter</label>
+                                    <textarea id="resume" rows="8" required placeholder="Tell us why you're interested in this role..." class="textarea-field w-full text-lg"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-full text-lg py-4">✓ Submit Application</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        function SavedJobs() {
+            const saved = state.jobs.filter(j => state.savedJobs.includes(j.id));
+
+            return `
+                <div class="max-w-7xl mx-auto px-8 py-12">
+                    <div class="mb-12">
+                        <h2 class="text-5xl font-bold mb-3 gradient-text">❤️ Saved Jobs</h2>
+                        <p class="text-gray-600 text-lg">${saved.length} ${saved.length === 1 ? 'job' : 'jobs'} bookmarked</p>
+                    </div>
+
+                    ${saved.length === 0 ? `
+                        <div class="card text-center py-16">
+                            <p class="text-6xl mb-6">📌</p>
+                            <p class="text-3xl font-bold text-gray-900 mb-3">No saved jobs yet</p>
+                            <p class="text-gray-600 text-lg mb-8">Start exploring and save jobs you love!</p>
+                            <button onclick="state.currentPage = 'jobs'; render()" class="btn btn-primary">Browse Jobs</button>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            ${saved.map(job => `
+                                <div class="card job-card group">
+                                    <div class="mb-4 flex justify-between items-start">
+                                        <div class="flex-1">
+                                            <h3 class="text-xl font-bold text-gray-900 group-hover:text-purple-600 transition line-clamp-2">${job.title}</h3>
+                                            <p class="text-purple-600 font-semibold mt-2">${job.company_name}</p>
+                                        </div>
+                                        <button onclick="unsaveJob(${job.id}); render()" class="text-3xl hover:scale-125 transition">❤️</button>
+                                    </div>
+                                    <div class="flex items-center gap-2 text-gray-600 mb-4">
+                                        <span>📍</span>
+                                        <p>${job.job_location || 'Remote'}</p>
+                                    </div>
+                                    <p class="text-gray-600 text-sm mb-6 line-clamp-2">${job.job_description ? job.job_description.substring(0, 100) + '...' : 'No description'}</p>
+                                    <div class="flex gap-2">
+                                        <button onclick="state.currentPage = 'details'; state.currentJob = ${job.id}; render()" class="btn btn-primary flex-1">View</button>
+                                        <button onclick="state.currentPage = 'apply'; render()" class="btn btn-success flex-1">Apply</button>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        // ============= EMPLOYER PAGES =============
+        function EmployerDashboard() {
+            return `
+                <div class="max-w-7xl mx-auto px-8 py-12">
+                    <div class="flex justify-between items-center mb-12">
+                        <div>
+                            <h2 class="text-5xl font-bold mb-3 gradient-text">🏢 Employer Dashboard</h2>
+                            <p class="text-gray-600 text-lg">Manage your job postings and applications</p>
+                        </div>
+                        <button onclick="state.currentPage = 'post-job'; render()" class="btn btn-success text-lg">+ Post New Job</button>
+                    </div>
+
+                    ${state.postedJobs.length === 0 ? `
+                        <div class="card text-center py-16">
+                            <p class="text-6xl mb-6">📋</p>
+                            <p class="text-3xl font-bold text-gray-900 mb-3">No jobs posted yet</p>
+                            <p class="text-gray-600 text-lg mb-8">Start by posting your first job opening!</p>
+                            <button onclick="state.currentPage = 'post-job'; render()" class="btn btn-success">Post a Job</button>
+                        </div>
+                    ` : `
+                        <div class="grid grid-cols-1 gap-6">
+                            ${state.postedJobs.map(job => {
+                                const applicants = getApplicationsForJob(job.id);
+                                return `
+                                    <div class="card">
+                                        <div class="flex justify-between items-start mb-6 pb-6 border-b border-gray-200">
+                                            <div class="flex-1">
+                                                <h3 class="text-2xl font-bold text-gray-900">${job.title}</h3>
+                                                <p class="text-gray-600 mt-2">📍 ${job.job_location || 'Remote'} • Posted ${job.postedDate}</p>
+                                            </div>
+                                            <button onclick="deletePostedJob(${job.id}); render()" class="btn btn-danger">Delete</button>
+                                        </div>
+
+                                        <div class="grid grid-cols-2 gap-6 mb-6">
+                                            <div class="bg-blue-50 p-6 rounded-lg border border-blue-200">
+                                                <p class="text-blue-600 text-sm font-semibold mb-2">APPLICATIONS</p>
+                                                <p class="text-4xl font-bold text-blue-900">${applicants.length}</p>
+                                            </div>
+                                            <div class="bg-purple-50 p-6 rounded-lg border border-purple-200">
+                                                <p class="text-purple-600 text-sm font-semibold mb-2">JOB TYPE</p>
+                                                <p class="text-lg font-bold text-purple-900">${job.job_type || 'Full-time'}</p>
+                                            </div>
+                                        </div>
+
+                                        ${applicants.length > 0 ? `
+                                            <div>
+                                                <h4 class="font-semibold text-gray-900 mb-4">Applicants</h4>
+                                                <div class="space-y-3">
+                                                    ${applicants.slice(0, 3).map(app => `
+                                                        <div class="bg-gray-50 p-4 rounded-lg">
+                                                            <p class="font-semibold text-gray-900">${app.name}</p>
+                                                            <p class="text-sm text-gray-600">${app.email}</p>
+                                                        </div>
+                                                    `).join('')}
+                                                    ${applicants.length > 3 ? `<p class="text-gray-600 text-sm">+${applicants.length - 3} more applications</p>` : ''}
+                                                </div>
+                                            </div>
+                                        ` : `
+                                            <p class="text-gray-600 text-center py-6">No applications yet</p>
+                                        `}
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `}
+                </div>
+            `;
+        }
+
+        function PostJobPage() {
+            return `
+                <div class="max-w-2xl mx-auto px-8 py-12">
+                    <button onclick="state.currentPage = 'employer-dashboard'; render()" class="flex items-center gap-2 text-purple-600 font-semibold hover:text-purple-700 mb-8 transition">
+                        ← Back to Dashboard
+                    </button>
+
+                    <div class="card">
+                        <div class="mb-8">
+                            <h2 class="text-4xl font-bold text-gray-900 mb-2">Post a New Job</h2>
+                            <p class="text-gray-600 text-lg">Fill in the details below</p>
+                        </div>
+
+                        ${state.message ? `<div class="bg-green-50 text-green-700 p-4 rounded-lg mb-6 border border-green-200 flex items-center gap-2"><i class="fas fa-check-circle"></i> <span>${state.message}</span></div>` : ''}
+
+                        <form onsubmit="event.preventDefault(); postJob({title: document.getElementById('title').value, job_type: document.getElementById('jobType').value, job_location: document.getElementById('location').value, job_description: document.getElementById('description').value})">
+                            <div class="space-y-6">
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Job Title</label>
+                                    <input type="text" id="title" required placeholder="Senior React Developer" class="input-field w-full text-lg">
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-6">
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-3 text-sm">Job Type</label>
+                                        <select id="jobType" class="input-field w-full text-lg">
+                                            <option>Full-time</option>
+                                            <option>Part-time</option>
+                                            <option>Contract</option>
+                                            <option>Internship</option>
+                                        </select>
+                                    </div>
+
+                                    <div>
+                                        <label class="block text-gray-700 font-semibold mb-3 text-sm">Location</label>
+                                        <select id="location" class="input-field w-full text-lg">
+                                            <option>Remote</option>
+                                            <option>USA</option>
+                                            <option>Europe</option>
+                                            <option>Asia</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label class="block text-gray-700 font-semibold mb-3 text-sm">Job Description</label>
+                                    <textarea id="description" rows="8" required placeholder="Describe the job, requirements, and benefits..." class="textarea-field w-full text-lg"></textarea>
+                                </div>
+
+                                <button type="submit" class="btn btn-success w-full text-lg py-4">📤 Post Job</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            `;
+        }
+
+        // ============= RENDER =============
+        function render() {
+            const app = document.getElementById('app');
+            let content = '';
+
+            if (state.currentPage === 'login') {
+                content = LoginPage();
+            } else if (state.currentPage === 'jobs') {
+                content = Header() + JobsList();
+            } else if (state.currentPage === 'details') {
+                content = Header() + JobDetails();
+            } else if (state.currentPage === 'apply') {
+                content = Header() + ApplyJob();
+            } else if (state.currentPage === 'saved') {
+                content = Header() + SavedJobs();
+            } else if (state.currentPage === 'employer-dashboard') {
+                content = Header() + EmployerDashboard();
+            } else if (state.currentPage === 'post-job') {
+                content = Header() + PostJobPage();
+            }
+
+            app.innerHTML = content;
+        }
+
+        // ============= INIT =============
+        window.addEventListener('load', () => {
+            fetchJobs();
+        });
+    </script>
+</body>
+</html>
