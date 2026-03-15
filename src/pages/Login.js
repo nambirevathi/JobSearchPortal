@@ -82,12 +82,6 @@ const Login = () => {
         </div>
 
         <div className="mt-8 pt-8 border-t border-gray-200">
-          <p className="text-sm text-gray-600 text-center mb-3">Demo Credentials:</p>
-          <div className="bg-gray-50 p-4 rounded-lg text-xs text-gray-700 font-mono text-center space-y-1">
-            <p>Email: <span className="font-bold text-gray-900">rahul</span></p>
-            <p>Password: <span className="font-bold text-gray-900">rahul@2021</span></p>
-          </div>
-
           <div className="mt-6 text-sm text-gray-600 text-center">
             <p className="font-semibold">Founder</p>
             <p>Revathi Nambi</p>
