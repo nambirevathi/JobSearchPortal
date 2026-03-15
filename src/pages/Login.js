@@ -87,6 +87,17 @@ const Login = () => {
             <p>Email: <span className="font-bold text-gray-900">rahul</span></p>
             <p>Password: <span className="font-bold text-gray-900">rahul@2021</span></p>
           </div>
+
+          <div className="mt-6 text-sm text-gray-600 text-center">
+            <p className="font-semibold">Founder</p>
+            <p>Revathi Nambi</p>
+            <p>
+              <span className="font-semibold">Email:</span>{' '}
+              <a href="mailto:revathi.nambi.cse@gmail.com" className="text-blue-600 hover:text-blue-700">
+                revathi.nambi.cse@gmail.com
+              </a>
+            </p>
+          </div>
         </div>
       </div>
     </div>
