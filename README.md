@@ -185,7 +185,7 @@ Use these credentials to test the application:
 
 ### `npm start`
 Runs the app in development mode at [http://localhost:3000](http://localhost:3000)
-[https://job-search-portal-xi.vercel.app/login]
+[https://job-search-portal-xi.vercel.app]
 ### `npm build`
 Builds the app for production to the `build` folder
 
